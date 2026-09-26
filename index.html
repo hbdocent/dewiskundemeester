@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>De Wiskundemeester</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧮</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&family=Noto+Naskh+Arabic:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#182620;
+    --paper:#EEECDF;
+    --panel:#E3E1D2;
+    --panel-border:#C9C6B3;
+    --accent:#2F6F4E;
+    --accent-ink:#F4F2E6;
+    --accent-soft:#DCE8DF;
+    --gold:#C98F2B;
+    --brick:#A6473C;
+    --muted:#5B6058;
+    --radius:10px;
+    --font-display:'Space Grotesk', sans-serif;
+    --font-body:'Inter', sans-serif;
+    --font-mono:'IBM Plex Mono', monospace;
+    --font-arabic:'Noto Naskh Arabic', serif;
+  }
+  html[data-theme="dark"]{
+    --ink:#E9E6D6;
+    --paper:#12201A;
+    --panel:#192B22;
+    --panel-border:#2A4436;
+    --accent:#5CAE82;
+    --accent-ink:#0E1A14;
+    --accent-soft:#1E3529;
+    --gold:#E0AF52;
+    --brick:#D18077;
+    --muted:#9AA69C;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--font-body);
+    line-height:1.5;
+    transition:background .2s ease, color .2s ease;
+  }
+  .wrap{
+    max-width:640px;
+    margin:0 auto;
+    padding:28px 20px 60px;
+  }
+  header{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:16px;
+    margin-bottom:22px;
+  }
+  .brand h1{
+    font-family:var(--font-display);
+    font-size:1.5rem;
+    font-weight:700;
+    margin:0 0 2px;
+    letter-spacing:-0.01em;
+  }
+  .brand p{
+    margin:0;
+    color:var(--muted);
+    font-size:.9rem;
+  }
+  .chalkline{
+    border:none;
+    border-top:2px dashed var(--panel-border);
+    margin:20px 0;
+  }
+  button.icon-btn{
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    color:var(--ink);
+    border-radius:var(--radius);
+    width:40px;
+    height:40px;
+    font-size:1.1rem;
+    cursor:pointer;
+    flex-shrink:0;
+  }
+  button.icon-btn:hover{background:var(--accent-soft);}
+
+  .row{display:flex;gap:10px;flex-wrap:wrap;}
+  select, .textinput{
+    font-family:var(--font-body);
+    font-size:.92rem;
+    background:var(--panel);
+    color:var(--ink);
+    border:1px solid var(--panel-border);
+    border-radius:var(--radius);
+    padding:9px 12px;
+  }
+
+  .tabs{display:flex;gap:6px;margin-bottom:14px;}
+  .tab{
+    flex:1;
+    text-align:center;
+    padding:10px 8px;
+    border-radius:var(--radius);
+    border:1px solid var(--panel-border);
+    background:var(--panel);
+    color:var(--muted);
+    font-size:.85rem;
+    font-weight:600;
+    cursor:pointer;
+    user-select:none;
+  }
+  .tab.active{
+    background:var(--accent);
+    color:var(--accent-ink);
+    border-color:var(--accent);
+  }
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    border-radius:14px;
+    padding:20px;
+    margin-bottom:16px;
+  }
+
+  .mode-view{display:none;}
+  .mode-view.active{display:block;}
+
+  textarea{
+    width:100%;
+    min-height:100px;
+    resize:vertical;
+    font-family:var(--font-body);
+    font-size:1rem;
+    background:var(--paper);
+    color:var(--ink);
+    border:1px solid var(--panel-border);
+    border-radius:var(--radius);
+    padding:12px;
+  }
+  textarea[dir="rtl"]{font-family:var(--font-arabic); font-size:1.05rem;}
+
+  .mic-area{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:10px;
+    padding:10px 0 4px;
+  }
+  .mic-btn{
+    width:76px;height:76px;
+    border-radius:50%;
+    border:2px solid var(--accent);
+    background:var(--accent-soft);
+    color:var(--accent);
+    font-size:1.8rem;
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .mic-btn.recording{
+    background:var(--brick);
+    border-color:var(--brick);
+    color:var(--accent-ink);
+    animation:pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(166,71,60,.35);}
+    50%{box-shadow:0 0 0 10px rgba(166,71,60,0);}
+  }
+  .mic-hint{color:var(--muted); font-size:.85rem; text-align:center;}
+  .transcript{
+    width:100%;
+    min-height:70px;
+    background:var(--paper);
+    border:1px solid var(--panel-border);
+    border-radius:var(--radius);
+    padding:12px;
+    font-size:1rem;
+    white-space:pre-wrap;
+  }
+  .transcript[dir="rtl"]{font-family:var(--font-arabic); font-size:1.05rem;}
+  .transcript:empty::before{content:"Wat je inspreekt verschijnt hier…"; color:var(--muted);}
+
+  .photo-drop{
+    border:2px dashed var(--panel-border);
+    border-radius:var(--radius);
+    padding:26px 14px;
+    text-align:center;
+    color:var(--muted);
+    cursor:pointer;
+  }
+  .photo-drop.hasimg{padding:10px;}
+  .photo-drop img{max-width:100%; max-height:220px; border-radius:6px; display:block; margin:0 auto;}
+  input[type=file]{display:none;}
+
+  .controls-row{
+    display:flex;
+    gap:10px;
+    margin-top:14px;
+    flex-wrap:wrap;
+  }
+  .controls-row select{flex:1; min-width:140px;}
+
+  .ask-btn{
+    width:100%;
+    margin-top:16px;
+    background:var(--accent);
+    color:var(--accent-ink);
+    border:none;
+    border-radius:var(--radius);
+    padding:14px;
+    font-family:var(--font-display);
+    font-size:1.02rem;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .ask-btn:disabled{opacity:.55; cursor:default;}
+
+  .result{margin-top:22px;}
+  .result h2{
+    font-family:var(--font-display);
+    font-size:1.1rem;
+    margin:0 0 10px;
+  }
+  .step{
+    border-left:3px solid var(--accent);
+    padding:4px 0 4px 14px;
+    margin-bottom:14px;
+  }
+  .step .stap-titel{font-weight:600; margin-bottom:3px;}
+  .step .berekening{
+    font-family:var(--font-mono);
+    background:var(--paper);
+    border:1px solid var(--panel-border);
+    border-radius:6px;
+    padding:8px 10px;
+    margin:6px 0;
+    font-size:.95rem;
+    overflow-x:auto;
+  }
+  .antwoord-box{
+    background:var(--accent-soft);
+    border:1px solid var(--accent);
+    border-radius:var(--radius);
+    padding:14px;
+    margin-top:6px;
+  }
+  .antwoord-box .label{font-size:.78rem; text-transform:none; color:var(--muted); margin-bottom:2px;}
+  .antwoord-box .waarde{font-family:var(--font-display); font-size:1.15rem; font-weight:700;}
+  .controle{color:var(--muted); font-size:.9rem; margin-top:10px;}
+
+  [dir="rtl"] .step{border-left:none; border-right:3px solid var(--accent); padding:4px 14px 4px 0;}
+  .result[data-lang="ar"] *{font-family:var(--font-arabic);}
+
+  .status{color:var(--muted); font-size:.9rem; margin-top:10px;}
+  .error-box{
+    background:var(--panel);
+    border:1px solid var(--brick);
+    color:var(--brick);
+    border-radius:var(--radius);
+    padding:12px;
+    margin-top:14px;
+    font-size:.9rem;
+  }
+  footer{margin-top:30px; color:var(--muted); font-size:.78rem; text-align:center;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <h1>De Wiskundemeester</h1>
+      <p>Leg je som uit, en krijg de stappen erbij — vmbo klas 3 &amp; 4</p>
+    </div>
+    <button class="icon-btn" id="themeToggle" title="Licht/donker" aria-label="Wissel licht/donker">🌓</button>
+  </header>
+
+  <div class="panel">
+    <div class="row" style="margin-bottom:14px;">
+      <select id="levelSelect" aria-label="Niveau">
+        <option value="3-basis">Klas 3 · basis</option>
+        <option value="3-kader">Klas 3 · kader</option>
+        <option value="4-basis">Klas 4 · basis</option>
+        <option value="4-kader">Klas 4 · kader</option>
+      </select>
+      <select id="langSelect" aria-label="Taal van de uitleg">
+        <option value="nl">🇳🇱 Uitleg in het Nederlands</option>
+        <option value="ar">🇸🇦 الشرح بالعربية (Arabisch)</option>
+      </select>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" data-mode="spreek">🎤 Spreek in</div>
+      <div class="tab" data-mode="typ">⌨️ Typ</div>
+      <div class="tab" data-mode="foto">📷 Foto</div>
+    </div>
+
+    <div class="mode-view active" id="mode-spreek">
+      <div class="mic-area">
+        <button class="mic-btn" id="micBtn" aria-label="Begin met opnemen">🎤</button>
+        <div class="mic-hint" id="micHint">Druk op de microfoon en spreek je som in</div>
+      </div>
+      <div class="transcript" id="transcript" dir="ltr"></div>
+    </div>
+
+    <div class="mode-view" id="mode-typ">
+      <textarea id="typInput" dir="ltr" placeholder="Typ hier je som, bijvoorbeeld: los op 3x + 5 = 20"></textarea>
+    </div>
+
+    <div class="mode-view" id="mode-foto">
+      <div class="photo-drop" id="photoDrop">
+        <div id="photoDropText">📷 Klik om een foto van je somopschrift te kiezen</div>
+        <img id="photoPreview" style="display:none;">
+      </div>
+      <input type="file" id="photoInput" accept="image/*" capture="environment">
+      <textarea id="photoNote" dir="ltr" placeholder="Eventueel: extra toelichting bij de foto (optioneel)" style="min-height:60px; margin-top:10px;"></textarea>
+    </div>
+
+    <button class="ask-btn" id="askBtn">Leg deze som uit</button>
+    <div class="status" id="status"></div>
+  </div>
+
+  <div class="result" id="result" style="display:none;"></div>
+
+  <footer>De Wiskundemeester · gemaakt voor eigen gebruik in de klas</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ============================================================
+  //  STAP 3 UIT HET STAPPENPLAN: vul hieronder je eigen gratis
+  //  Gemini API-sleutel in (opgehaald via aistudio.google.com/apikey).
+  //  Zie README.md voor de volledige uitleg.
+  // ============================================================
+  const GEMINI_API_KEY = "AQ.Ab8RN6IuHfMTxJlMsrr2vVhyJwJbRGut3zDxUB-oERQvEe1HUA";
+  const GEMINI_MODEL = "gemini-3.1-flash-lite";
+  const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/" + GEMINI_MODEL + ":generateContent";
+  // ============================================================
+
+  const LEVEL_LABELS = {
+    "3-basis": "klas 3 vmbo-basis",
+    "3-kader": "klas 3 vmbo-kader",
+    "4-basis": "klas 4 vmbo-basis",
+    "4-kader": "klas 4 vmbo-kader",
+  };
+
+  function systemPrompt(level, language){
+    const levelLabel = LEVEL_LABELS[level] || "vmbo klas 3/4";
+    const languageInstruction = language === "ar"
+      ? "Schrijf ALLE tekst in het Arabisch (Modern Standaard Arabisch), inclusief de labels."
+      : "Schrijf alle tekst in het Nederlands.";
+    return [
+      "Je bent een geduldige, vriendelijke wiskundedocent voor een leerling in " + levelLabel + ".",
+      "De leerling stuurt een wiskundevraag als tekst en/of een foto van een somopschrift.",
+      "Geef nooit alleen het kale antwoord: leg altijd de denkstappen en de berekening uit,",
+      "in taal die past bij dit niveau (basis = kort en eenvoudig, kader = iets abstracter mag).",
+      languageInstruction,
+      "",
+      "Antwoord UITSLUITEND met geldige JSON in dit format:",
+      "{",
+      '  "samenvatting": "korte herhaling van de vraag/som in eigen woorden",',
+      '  "stappen": [',
+      '    { "stap": "korte titel van de stap", "uitleg": "wat je doet en waarom", "berekening": "de rekenregel zelf, bv. 3x + 5 = 20 -> 3x = 15" }',
+      "  ],",
+      '  "antwoord": "het uiteindelijke antwoord, kort en duidelijk",',
+      '  "controle": "een korte tip om te controleren of het antwoord klopt"',
+      "}",
+      "Gebruik 2 tot 5 stappen, afhankelijk van de som. Als de foto of tekst geen duidelijke",
+      'wiskundevraag bevat, zet dat uitgelegd in "samenvatting" en laat "stappen" leeg.',
+    ].join("\n");
+  }
+
+  // ---------- Theme ----------
+  const root = document.documentElement;
+  const savedTheme = localStorage.getItem('wm-theme');
+  if(savedTheme) root.setAttribute('data-theme', savedTheme);
+  document.getElementById('themeToggle').addEventListener('click', ()=>{
+    const cur = root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+    const next = cur === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    localStorage.setItem('wm-theme', next);
+  });
+
+  // ---------- Tabs ----------
+  const tabs = document.querySelectorAll('.tab');
+  const views = {
+    spreek: document.getElementById('mode-spreek'),
+    typ: document.getElementById('mode-typ'),
+    foto: document.getElementById('mode-foto'),
+  };
+  tabs.forEach(t=>{
+    t.addEventListener('click', ()=>{
+      tabs.forEach(x=>x.classList.remove('active'));
+      t.classList.add('active');
+      Object.values(views).forEach(v=>v.classList.remove('active'));
+      views[t.dataset.mode].classList.add('active');
+    });
+  });
+
+  // ---------- Language: also drives recognition + text direction ----------
+  const langSelect = document.getElementById('langSelect');
+  const transcriptEl = document.getElementById('transcript');
+  const typInput = document.getElementById('typInput');
+  const photoNote = document.getElementById('photoNote');
+
+  function applyDirection(){
+    const rtl = langSelect.value === 'ar';
+    const dir = rtl ? 'rtl' : 'ltr';
+    [transcriptEl, typInput, photoNote].forEach(el=>el.setAttribute('dir', dir));
+  }
+  langSelect.addEventListener('change', applyDirection);
+  applyDirection();
+
+  // ---------- Speech recognition ----------
+  const SpeechRecognitionImpl = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const micBtn = document.getElementById('micBtn');
+  const micHint = document.getElementById('micHint');
+  let recognizing = false;
+  let recognition = null;
+
+  if(!SpeechRecognitionImpl){
+    micHint.textContent = 'Spraakherkenning werkt niet in deze browser — gebruik "Typ" in plaats daarvan.';
+    micBtn.disabled = true;
+    micBtn.style.opacity = .5;
+  } else {
+    recognition = new SpeechRecognitionImpl();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    micBtn.addEventListener('click', ()=>{
+      if(recognizing){
+        recognition.stop();
+        return;
+      }
+      recognition.lang = langSelect.value === 'ar' ? 'ar-SA' : 'nl-NL';
+      transcriptEl.textContent = '';
+      try{ recognition.start(); }catch(e){ /* already started */ }
+    });
+
+    recognition.addEventListener('start', ()=>{
+      recognizing = true;
+      micBtn.classList.add('recording');
+      micHint.textContent = 'Aan het luisteren… druk nogmaals om te stoppen';
+    });
+    recognition.addEventListener('end', ()=>{
+      recognizing = false;
+      micBtn.classList.remove('recording');
+      micHint.textContent = 'Druk op de microfoon en spreek je som in';
+    });
+    recognition.addEventListener('error', (e)=>{
+      micHint.textContent = 'Kon niet luisteren (' + e.error + '). Probeer opnieuw of gebruik "Typ".';
+    });
+    recognition.addEventListener('result', (e)=>{
+      let finalText = '';
+      let interimText = '';
+      for(let i=0; i<e.results.length; i++){
+        const r = e.results[i];
+        if(r.isFinal) finalText += r[0].transcript + ' ';
+        else interimText += r[0].transcript;
+      }
+      transcriptEl.textContent = (finalText + interimText).trim();
+    });
+  }
+
+  // ---------- Photo upload ----------
+  const photoDrop = document.getElementById('photoDrop');
+  const photoInput = document.getElementById('photoInput');
+  const photoPreview = document.getElementById('photoPreview');
+  const photoDropText = document.getElementById('photoDropText');
+  let photoBase64 = null;
+
+  photoDrop.addEventListener('click', ()=>photoInput.click());
+  photoInput.addEventListener('change', ()=>{
+    const file = photoInput.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      photoBase64 = reader.result; // data URL
+      photoPreview.src = photoBase64;
+      photoPreview.style.display = 'block';
+      photoDropText.style.display = 'none';
+      photoDrop.classList.add('hasimg');
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // ---------- Ask ----------
+  const askBtn = document.getElementById('askBtn');
+  const statusEl = document.getElementById('status');
+  const resultEl = document.getElementById('result');
+  const levelSelect = document.getElementById('levelSelect');
+
+  function activeMode(){
+    return document.querySelector('.tab.active').dataset.mode;
+  }
+
+  function currentQuestionText(){
+    const mode = activeMode();
+    if(mode === 'spreek') return transcriptEl.textContent.trim();
+    if(mode === 'typ') return typInput.value.trim();
+    if(mode === 'foto') return photoNote.value.trim();
+    return '';
+  }
+
+  function renderError(msg){
+    resultEl.style.display = 'block';
+    resultEl.innerHTML = '<div class="error-box">' + msg + '</div>';
+  }
+
+  function renderResult(data, lang){
+    resultEl.style.display = 'block';
+    resultEl.setAttribute('data-lang', lang);
+    resultEl.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
+    let html = '';
+    if(data.samenvatting){
+      html += '<h2>' + (lang === 'ar' ? 'السؤال' : 'De som') + '</h2><p>' + escapeHtml(data.samenvatting) + '</p>';
+    }
+    if(Array.isArray(data.stappen) && data.stappen.length){
+      html += '<h2>' + (lang === 'ar' ? 'خطوات الحل' : 'Stappenplan') + '</h2>';
+      data.stappen.forEach((s, i)=>{
+        html += '<div class="step">';
+        html += '<div class="stap-titel">' + (i+1) + '. ' + escapeHtml(s.stap || '') + '</div>';
+        if(s.uitleg) html += '<div>' + escapeHtml(s.uitleg) + '</div>';
+        if(s.berekening) html += '<div class="berekening">' + escapeHtml(s.berekening) + '</div>';
+        html += '</div>';
+      });
+    }
+    if(data.antwoord){
+      html += '<div class="antwoord-box"><div class="label">' + (lang === 'ar' ? 'الإجابة' : 'Antwoord') + '</div><div class="waarde">' + escapeHtml(data.antwoord) + '</div></div>';
+    }
+    if(data.controle){
+      html += '<div class="controle">' + escapeHtml(data.controle) + '</div>';
+    }
+    resultEl.innerHTML = html || '<div class="error-box">Geen antwoord ontvangen.</div>';
+  }
+
+  function escapeHtml(str){
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  askBtn.addEventListener('click', async ()=>{
+    const question = currentQuestionText();
+    const mode = activeMode();
+    if(mode !== 'foto' && !question){
+      statusEl.textContent = 'Spreek of typ eerst een som in.';
+      return;
+    }
+    if(mode === 'foto' && !photoBase64){
+      statusEl.textContent = 'Kies eerst een foto.';
+      return;
+    }
+    if(!GEMINI_API_KEY || GEMINI_API_KEY.indexOf('VUL') !== -1){
+      renderError('De app is nog niet gekoppeld aan Gemini. Vul GEMINI_API_KEY bovenin index.html in (zie README.md, stap 3).');
+      return;
+    }
+
+    askBtn.disabled = true;
+    statusEl.textContent = 'Even rekenen…';
+    resultEl.style.display = 'none';
+
+    const lang = langSelect.value;
+    const level = levelSelect.value;
+
+    const parts = [];
+    if(mode === 'foto' && photoBase64){
+      const match = /^data:(image\/[a-zA-Z+]+);base64,(.+)$/.exec(photoBase64);
+      if(match){
+        parts.push({ inline_data: { mime_type: match[1], data: match[2] } });
+      }
+    }
+    parts.push({ text: question ? question : 'Bekijk de foto en leg de som stap voor stap uit.' });
+
+    const body = {
+      system_instruction: { parts: [{ text: systemPrompt(level, lang) }] },
+      contents: [{ role: 'user', parts }],
+      generationConfig: { responseMimeType: 'application/json' }
+    };
+
+    try{
+      const res = await fetch(GEMINI_URL, {
+        method:'POST',
+        headers: { 'Content-Type':'application/json', 'x-goog-api-key': GEMINI_API_KEY },
+        body: JSON.stringify(body)
+      });
+      if(!res.ok){
+        if(res.status === 429){
+          throw new Error('Het gratis daglimiet van Gemini is bereikt. Probeer het over een tijdje opnieuw.');
+        }
+        const t = await res.text();
+        throw new Error('Gemini gaf een fout (' + res.status + '): ' + t.slice(0,200));
+      }
+      const geminiData = await res.json();
+      const raw = geminiData && geminiData.candidates && geminiData.candidates[0] &&
+                  geminiData.candidates[0].content && geminiData.candidates[0].content.parts &&
+                  geminiData.candidates[0].content.parts[0] ? geminiData.candidates[0].content.parts[0].text : '{}';
+      let data;
+      try{ data = JSON.parse(raw); }
+      catch(e){ data = { samenvatting: raw, stappen: [], antwoord: '', controle: '' }; }
+
+      statusEl.textContent = '';
+      renderResult(data, lang);
+    }catch(err){
+      statusEl.textContent = '';
+      renderError('Er ging iets mis: ' + escapeHtml(err.message));
+    }finally{
+      askBtn.disabled = false;
+    }
+  });
+})();
+</script>
+</body>
+</html>

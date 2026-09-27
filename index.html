@@ -339,7 +339,7 @@
   //  OpenRouter API-sleutel in (opgehaald via openrouter.ai/settings/keys).
   //  Zie README.md voor de volledige uitleg.
   // ============================================================
-  const OPENROUTER_API_KEY = "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";
+  const OPENROUTER_API_KEY = "VUL-HIER-JE-OPENROUTER-SLEUTEL-IN";
   const OPENROUTER_MODEL = "openrouter/free"; // kiest automatisch een werkend gratis model
   const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
   // ============================================================
@@ -620,7 +620,13 @@
           throw new Error('Het gratis daglimiet is bereikt (50 vragen per dag). Probeer het morgen opnieuw.');
         }
         if(res.status === 401){
-          throw new Error('De sleutel wordt niet geaccepteerd. Controleer of je hem goed hebt gekopieerd in index.html.');
+          let detail = '';
+          try{
+            const errJson = await res.json();
+            detail = (errJson && errJson.error && (errJson.error.code || errJson.error.message))
+              ? ' (' + (errJson.error.code || '') + ' ' + (errJson.error.message || '') + ')' : '';
+          }catch(e2){ /* geen JSON-body, negeer */ }
+          throw new Error('De sleutel wordt niet geaccepteerd' + detail + '. Controleer of je hem goed hebt gekopieerd in index.html.');
         }
         const t = await res.text();
         throw new Error('OpenRouter gaf een fout (' + res.status + '): ' + t.slice(0,200));

@@ -336,12 +336,12 @@
 
   // ============================================================
   //  STAP 3 UIT HET STAPPENPLAN: vul hieronder je eigen gratis
-  //  Gemini API-sleutel in (opgehaald via aistudio.google.com/apikey).
+  //  OpenRouter API-sleutel in (opgehaald via openrouter.ai/settings/keys).
   //  Zie README.md voor de volledige uitleg.
   // ============================================================
-  const GEMINI_API_KEY = "AQ.Ab8RN6Ka6wBDe4-f3pAOBkpc8PqTBddM1JuqU8Q5-gydQ6ZqEQ";
-  const GEMINI_MODEL = "gemini-3.1-flash-lite";
-  const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/" + GEMINI_MODEL + ":generateContent";
+  const OPENROUTER_API_KEY = "sk-or-v1-45c...7af";
+  const OPENROUTER_MODEL = "openrouter/free"; // kiest automatisch een werkend gratis model
+  const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
   // ============================================================
 
   const LEVEL_LABELS = {
@@ -579,8 +579,8 @@
       statusEl.textContent = 'Kies eerst een foto.';
       return;
     }
-    if(!GEMINI_API_KEY || GEMINI_API_KEY.indexOf('VUL') !== -1){
-      renderError('De app is nog niet gekoppeld aan Gemini. Vul GEMINI_API_KEY bovenin index.html in (zie README.md, stap 3).');
+    if(!OPENROUTER_API_KEY || OPENROUTER_API_KEY.indexOf('VUL') !== -1){
+      renderError('De app is nog niet gekoppeld aan OpenRouter. Vul OPENROUTER_API_KEY bovenin index.html in (zie README.md, stap 3).');
       return;
     }
 
@@ -591,41 +591,51 @@
     const lang = langSelect.value;
     const level = levelSelect.value;
 
-    const parts = [];
+    const userContent = [];
+    userContent.push({ type: 'text', text: question ? question : 'Bekijk de foto en leg de som stap voor stap uit.' });
     if(mode === 'foto' && photoBase64){
-      const match = /^data:(image\/[a-zA-Z+]+);base64,(.+)$/.exec(photoBase64);
-      if(match){
-        parts.push({ inline_data: { mime_type: match[1], data: match[2] } });
-      }
+      userContent.push({ type: 'image_url', image_url: { url: photoBase64 } });
     }
-    parts.push({ text: question ? question : 'Bekijk de foto en leg de som stap voor stap uit.' });
 
     const body = {
-      system_instruction: { parts: [{ text: systemPrompt(level, lang) }] },
-      contents: [{ role: 'user', parts }],
-      generationConfig: { responseMimeType: 'application/json' }
+      model: OPENROUTER_MODEL,
+      messages: [
+        { role: 'system', content: systemPrompt(level, lang) },
+        { role: 'user', content: userContent }
+      ],
+      response_format: { type: 'json_object' }
     };
 
     try{
-      const res = await fetch(GEMINI_URL, {
+      const res = await fetch(OPENROUTER_URL, {
         method:'POST',
-        headers: { 'Content-Type':'application/json', 'x-goog-api-key': GEMINI_API_KEY },
+        headers: {
+          'Content-Type':'application/json',
+          'Authorization': 'Bearer ' + OPENROUTER_API_KEY
+        },
         body: JSON.stringify(body)
       });
       if(!res.ok){
         if(res.status === 429){
-          throw new Error('Het gratis daglimiet van Gemini is bereikt. Probeer het over een tijdje opnieuw.');
+          throw new Error('Het gratis daglimiet is bereikt (50 vragen per dag). Probeer het morgen opnieuw.');
+        }
+        if(res.status === 401){
+          throw new Error('De sleutel wordt niet geaccepteerd. Controleer of je hem goed hebt gekopieerd in index.html.');
         }
         const t = await res.text();
-        throw new Error('Gemini gaf een fout (' + res.status + '): ' + t.slice(0,200));
+        throw new Error('OpenRouter gaf een fout (' + res.status + '): ' + t.slice(0,200));
       }
-      const geminiData = await res.json();
-      const raw = geminiData && geminiData.candidates && geminiData.candidates[0] &&
-                  geminiData.candidates[0].content && geminiData.candidates[0].content.parts &&
-                  geminiData.candidates[0].content.parts[0] ? geminiData.candidates[0].content.parts[0].text : '{}';
+      const orData = await res.json();
+      const raw = orData && orData.choices && orData.choices[0] && orData.choices[0].message
+                  ? orData.choices[0].message.content : '{}';
       let data;
       try{ data = JSON.parse(raw); }
-      catch(e){ data = { samenvatting: raw, stappen: [], antwoord: '', controle: '' }; }
+      catch(e){
+        // sommige modellen zetten er nog een ```json codeblok omheen
+        const cleaned = String(raw).trim().replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/```\s*$/, '');
+        try{ data = JSON.parse(cleaned); }
+        catch(e2){ data = { samenvatting: raw, stappen: [], antwoord: '', controle: '' }; }
+      }
 
       statusEl.textContent = '';
       renderResult(data, lang);

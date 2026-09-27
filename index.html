@@ -339,7 +339,7 @@
   //  Gemini API-sleutel in (opgehaald via aistudio.google.com/apikey).
   //  Zie README.md voor de volledige uitleg.
   // ============================================================
-  const GEMINI_API_KEY = "AIzaSyBsGCE9XrCFDJdsfWUuEeg6GxJapB8wIyQ";
+  const GEMINI_API_KEY = "AQ.Ab8RN6LdaPd9eQbkgmI0NDp127xuipMsZGGitac0bY-UrgHrTA";
   const GEMINI_MODEL = "gemini-3.1-flash-lite";
   const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/" + GEMINI_MODEL + ":generateContent";
   // ============================================================
@@ -434,11 +434,19 @@
     recognition.continuous = true;
     recognition.interimResults = true;
 
+    let wantsListening = false; // true while the student intends to keep recording
+    let sessionBase = '';       // final text collected from earlier auto-restarted sessions
+    let lastFinalText = '';     // final text collected so far in the CURRENT session
+
     micBtn.addEventListener('click', ()=>{
       if(recognizing){
+        wantsListening = false;
         recognition.stop();
         return;
       }
+      wantsListening = true;
+      sessionBase = '';
+      lastFinalText = '';
       recognition.lang = langSelect.value === 'ar' ? 'ar-SA' : 'nl-NL';
       transcriptEl.textContent = '';
       try{ recognition.start(); }catch(e){ /* already started */ }
@@ -452,9 +460,21 @@
     recognition.addEventListener('end', ()=>{
       recognizing = false;
       micBtn.classList.remove('recording');
-      micHint.textContent = 'Druk op de microfoon en spreek je som in';
+      sessionBase = (sessionBase + lastFinalText).trim() + ' ';
+      lastFinalText = '';
+      if(wantsListening){
+        // De browser stopt vanzelf na een korte stilte — start meteen weer,
+        // zodat het voor de leerling als één doorlopende opname aanvoelt.
+        try{ recognition.start(); }catch(e){ /* start net bezig, negeer */ }
+      } else {
+        micHint.textContent = 'Druk op de microfoon en spreek je som in';
+      }
     });
     recognition.addEventListener('error', (e)=>{
+      if(e.error === 'no-speech' || e.error === 'aborted'){
+        return; // onschuldig, 'end' handelt de herstart af
+      }
+      wantsListening = false;
       micHint.textContent = 'Kon niet luisteren (' + e.error + '). Probeer opnieuw of gebruik "Typ".';
     });
     recognition.addEventListener('result', (e)=>{
@@ -465,7 +485,8 @@
         if(r.isFinal) finalText += r[0].transcript + ' ';
         else interimText += r[0].transcript;
       }
-      transcriptEl.textContent = (finalText + interimText).trim();
+      lastFinalText = finalText;
+      transcriptEl.textContent = (sessionBase + finalText + interimText).trim();
     });
   }
 

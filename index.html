@@ -339,7 +339,7 @@
   //  OpenRouter API-sleutel in (opgehaald via openrouter.ai/settings/keys).
   //  Zie README.md voor de volledige uitleg.
   // ============================================================
-  const OPENROUTER_API_KEY = "sk-or-v1-d98••••••••••••••••••••9ede";
+  const OPENROUTER_API_KEY = "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";
   const OPENROUTER_MODEL = "openrouter/free"; // kiest automatisch een werkend gratis model
   const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
   // ============================================================
@@ -579,8 +579,17 @@
       statusEl.textContent = 'Kies eerst een foto.';
       return;
     }
-    if(!OPENROUTER_API_KEY || OPENROUTER_API_KEY.indexOf('VUL') !== -1){
-      renderError('De app is nog niet gekoppeld aan OpenRouter. Vul OPENROUTER_API_KEY bovenin index.html in (zie README.md, stap 3).');
+    const cleanKey = String(OPENROUTER_API_KEY || '').trim();
+    if(!cleanKey || cleanKey.indexOf('VUL') !== -1){
+      renderError('De app is nog niet gekoppeld aan OpenRouter. Vul OPENROUTER_API_KEY bovenin index.html in (zie README.md, stap 2).');
+      return;
+    }
+    if(/[^A-Za-z0-9_\-]/.test(cleanKey)){
+      renderError('In de sleutel zit een teken dat er niet in hoort (bijvoorbeeld "…", een spatie of een schuin aanhalingsteken). Dit gebeurt vaak als je de ingekorte sleutel uit de lijst kopieert. Maak een nieuwe sleutel op openrouter.ai/settings/keys en kopieer die direct na het aanmaken met de kopieerknop.');
+      return;
+    }
+    if(cleanKey.indexOf('sk-or-') !== 0){
+      renderError('Deze sleutel begint niet met "sk-or-". Controleer of je de sleutel van OpenRouter hebt geplakt (niet die van Google of iets anders).');
       return;
     }
 
@@ -611,7 +620,7 @@
         method:'POST',
         headers: {
           'Content-Type':'application/json',
-          'Authorization': 'Bearer ' + OPENROUTER_API_KEY
+          'Authorization': 'Bearer ' + cleanKey
         },
         body: JSON.stringify(body)
       });

@@ -291,6 +291,8 @@
       <select id="langSelect" aria-label="Taal van de uitleg">
         <option value="nl">🇳🇱 Uitleg in het Nederlands</option>
         <option value="ar">🇸🇦 الشرح بالعربية (Arabisch)</option>
+        <option value="tr">🇹🇷 Türkçe açıklama (Turks)</option>
+        <option value="so">🇸🇴 Sharaxaad Soomaali (Somalisch)</option>
       </select>
     </div>
 
@@ -338,7 +340,7 @@
   //  Vul hieronder het adres van je Cloudflare Worker in (zie README.md).
   //  Er staat GEEN API-sleutel in dit bestand: die staat veilig in Cloudflare.
   // ============================================================
-  const WORKER_URL = "https://dewiskundemeester.hbdocent.workers.dev/";
+  const WORKER_URL = "dewiskundemeester.hbdocent.workers.dev";
   // ============================================================
 
   const LEVEL_LABELS = {
@@ -350,9 +352,13 @@
 
   function systemPrompt(level, language){
     const levelLabel = LEVEL_LABELS[level] || "vmbo klas 3/4";
-    const languageInstruction = language === "ar"
-      ? "Schrijf ALLE tekst in het Arabisch (Modern Standaard Arabisch), inclusief de labels."
-      : "Schrijf alle tekst in het Nederlands.";
+    const languageInstructions = {
+      nl: "Schrijf alle tekst in het Nederlands.",
+      ar: "Schrijf ALLE tekst in het Arabisch (Modern Standaard Arabisch), inclusief de labels.",
+      tr: "Schrijf ALLE tekst in het Turks (Türkçe), in eenvoudige, duidelijke taal voor een scholier.",
+      so: "Schrijf ALLE tekst in het Somalisch (Af-Soomaali), in eenvoudige, duidelijke taal voor een scholier. Gebruik gewone Somalische woorden en houd zinnen kort.",
+    };
+    const languageInstruction = languageInstructions[language] || languageInstructions.nl;
     return [
       "Je bent een geduldige, vriendelijke wiskundedocent voor een leerling in " + levelLabel + ".",
       "De leerling stuurt een wiskundevraag als tekst en/of een foto van een somopschrift.",
@@ -444,7 +450,7 @@
       wantsListening = true;
       sessionBase = '';
       lastFinalText = '';
-      recognition.lang = langSelect.value === 'ar' ? 'ar-SA' : 'nl-NL';
+      recognition.lang = ({ nl:'nl-NL', ar:'ar-SA', tr:'tr-TR', so:'so-SO' })[langSelect.value] || 'nl-NL';
       transcriptEl.textContent = '';
       try{ recognition.start(); }catch(e){ /* already started */ }
     });
@@ -532,16 +538,26 @@
     resultEl.innerHTML = '<div class="error-box">' + msg + '</div>';
   }
 
+  const LABELS = {
+    nl: { som: 'De som', stappen: 'Stappenplan', antwoord: 'Antwoord' },
+    ar: { som: 'السؤال', stappen: 'خطوات الحل', antwoord: 'الإجابة' },
+    tr: { som: 'Soru', stappen: 'Çözüm adımları', antwoord: 'Cevap' },
+    so: { som: 'Su\'aasha', stappen: 'Tallaabooyinka xallinta', antwoord: 'Jawaabta' },
+  };
+  function t(lang, key){
+    return (LABELS[lang] || LABELS.nl)[key];
+  }
+
   function renderResult(data, lang){
     resultEl.style.display = 'block';
     resultEl.setAttribute('data-lang', lang);
     resultEl.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
     let html = '';
     if(data.samenvatting){
-      html += '<h2>' + (lang === 'ar' ? 'السؤال' : 'De som') + '</h2><p>' + escapeHtml(data.samenvatting) + '</p>';
+      html += '<h2>' + t(lang, 'som') + '</h2><p>' + escapeHtml(data.samenvatting) + '</p>';
     }
     if(Array.isArray(data.stappen) && data.stappen.length){
-      html += '<h2>' + (lang === 'ar' ? 'خطوات الحل' : 'Stappenplan') + '</h2>';
+      html += '<h2>' + t(lang, 'stappen') + '</h2>';
       data.stappen.forEach((s, i)=>{
         html += '<div class="step">';
         html += '<div class="stap-titel">' + (i+1) + '. ' + escapeHtml(s.stap || '') + '</div>';
@@ -551,7 +567,7 @@
       });
     }
     if(data.antwoord){
-      html += '<div class="antwoord-box"><div class="label">' + (lang === 'ar' ? 'الإجابة' : 'Antwoord') + '</div><div class="waarde">' + escapeHtml(data.antwoord) + '</div></div>';
+      html += '<div class="antwoord-box"><div class="label">' + t(lang, 'antwoord') + '</div><div class="waarde">' + escapeHtml(data.antwoord) + '</div></div>';
     }
     if(data.controle){
       html += '<div class="controle">' + escapeHtml(data.controle) + '</div>';

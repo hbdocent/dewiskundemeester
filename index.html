@@ -335,13 +335,10 @@
   "use strict";
 
   // ============================================================
-  //  STAP 3 UIT HET STAPPENPLAN: vul hieronder je eigen gratis
-  //  OpenRouter API-sleutel in (opgehaald via openrouter.ai/settings/keys).
-  //  Zie README.md voor de volledige uitleg.
+  //  Vul hieronder het adres van je Cloudflare Worker in (zie README.md).
+  //  Er staat GEEN API-sleutel in dit bestand: die staat veilig in Cloudflare.
   // ============================================================
-  const OPENROUTER_API_KEY = "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";
-  const OPENROUTER_MODEL = "openrouter/free"; // kiest automatisch een werkend gratis model
-  const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+  const WORKER_URL = "https://dewiskundemeester.hbdocent.workers.dev/";
   // ============================================================
 
   const LEVEL_LABELS = {
@@ -579,17 +576,8 @@
       statusEl.textContent = 'Kies eerst een foto.';
       return;
     }
-    const cleanKey = String(OPENROUTER_API_KEY || '').trim();
-    if(!cleanKey || cleanKey.indexOf('VUL') !== -1){
-      renderError('De app is nog niet gekoppeld aan OpenRouter. Vul OPENROUTER_API_KEY bovenin index.html in (zie README.md, stap 2).');
-      return;
-    }
-    if(/[^A-Za-z0-9_\-]/.test(cleanKey)){
-      renderError('In de sleutel zit een teken dat er niet in hoort (bijvoorbeeld "…", een spatie of een schuin aanhalingsteken). Dit gebeurt vaak als je de ingekorte sleutel uit de lijst kopieert. Maak een nieuwe sleutel op openrouter.ai/settings/keys en kopieer die direct na het aanmaken met de kopieerknop.');
-      return;
-    }
-    if(cleanKey.indexOf('sk-or-') !== 0){
-      renderError('Deze sleutel begint niet met "sk-or-". Controleer of je de sleutel van OpenRouter hebt geplakt (niet die van Google of iets anders).');
+    if(!WORKER_URL || WORKER_URL.indexOf('VUL') !== -1){
+      renderError('De app is nog niet gekoppeld aan de Worker. Vul WORKER_URL bovenin index.html in (zie README.md, stap 3).');
       return;
     }
 
@@ -607,7 +595,6 @@
     }
 
     const body = {
-      model: OPENROUTER_MODEL,
       messages: [
         { role: 'system', content: systemPrompt(level, lang) },
         { role: 'user', content: userContent }
@@ -616,26 +603,16 @@
     };
 
     try{
-      const res = await fetch(OPENROUTER_URL, {
+      const res = await fetch(WORKER_URL, {
         method:'POST',
         headers: {
-          'Content-Type':'application/json',
-          'Authorization': 'Bearer ' + cleanKey
+          'Content-Type':'application/json'
         },
         body: JSON.stringify(body)
       });
       if(!res.ok){
         if(res.status === 429){
           throw new Error('Het gratis daglimiet is bereikt (50 vragen per dag). Probeer het morgen opnieuw.');
-        }
-        if(res.status === 401){
-          let detail = '';
-          try{
-            const errJson = await res.json();
-            detail = (errJson && errJson.error && (errJson.error.code || errJson.error.message))
-              ? ' (' + (errJson.error.code || '') + ' ' + (errJson.error.message || '') + ')' : '';
-          }catch(e2){ /* geen JSON-body, negeer */ }
-          throw new Error('De sleutel wordt niet geaccepteerd' + detail + '. Controleer of je hem goed hebt gekopieerd in index.html.');
         }
         const t = await res.text();
         throw new Error('OpenRouter gaf een fout (' + res.status + '): ' + t.slice(0,200));

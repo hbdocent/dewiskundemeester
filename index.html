@@ -186,17 +186,6 @@
   .transcript[dir="rtl"]{font-family:var(--font-arabic); font-size:1.05rem;}
   .transcript:empty::before{content:"Wat je inspreekt verschijnt hier…"; color:var(--muted);}
 
-  .photo-drop{
-    border:2px dashed var(--panel-border);
-    border-radius:var(--radius);
-    padding:26px 14px;
-    text-align:center;
-    color:var(--muted);
-    cursor:pointer;
-  }
-  .photo-drop.hasimg{padding:10px;}
-  .photo-drop img{max-width:100%; max-height:220px; border-radius:6px; display:block; margin:0 auto;}
-  input[type=file]{display:none;}
 
   .controls-row{
     display:flex;
@@ -299,7 +288,6 @@
     <div class="tabs">
       <div class="tab active" data-mode="spreek">🎤 Spreek in</div>
       <div class="tab" data-mode="typ">⌨️ Typ</div>
-      <div class="tab" data-mode="foto">📷 Foto</div>
     </div>
 
     <div class="mode-view active" id="mode-spreek">
@@ -312,15 +300,6 @@
 
     <div class="mode-view" id="mode-typ">
       <textarea id="typInput" dir="ltr" placeholder="Typ hier je som, bijvoorbeeld: los op 3x + 5 = 20"></textarea>
-    </div>
-
-    <div class="mode-view" id="mode-foto">
-      <div class="photo-drop" id="photoDrop">
-        <div id="photoDropText">📷 Klik om een foto van je somopschrift te kiezen</div>
-        <img id="photoPreview" style="display:none;">
-      </div>
-      <input type="file" id="photoInput" accept="image/*" capture="environment">
-      <textarea id="photoNote" dir="ltr" placeholder="Eventueel: extra toelichting bij de foto (optioneel)" style="min-height:60px; margin-top:10px;"></textarea>
     </div>
 
     <button class="ask-btn" id="askBtn">Leg deze som uit</button>
@@ -361,7 +340,7 @@
     const languageInstruction = languageInstructions[language] || languageInstructions.nl;
     return [
       "Je bent een geduldige, vriendelijke wiskundedocent voor een leerling in " + levelLabel + ".",
-      "De leerling stuurt een wiskundevraag als tekst en/of een foto van een somopschrift.",
+      "De leerling stuurt een wiskundevraag als tekst (getypt of ingesproken).",
       "Geef nooit alleen het kale antwoord: leg altijd de denkstappen en de berekening uit,",
       "in taal die past bij dit niveau (basis = kort en eenvoudig, kader = iets abstracter mag).",
       languageInstruction,
@@ -375,7 +354,7 @@
       '  "antwoord": "het uiteindelijke antwoord, kort en duidelijk",',
       '  "controle": "een korte tip om te controleren of het antwoord klopt"',
       "}",
-      "Gebruik 2 tot 5 stappen, afhankelijk van de som. Als de foto of tekst geen duidelijke",
+      "Gebruik 2 tot 5 stappen, afhankelijk van de som. Als de tekst geen duidelijke",
       'wiskundevraag bevat, zet dat uitgelegd in "samenvatting" en laat "stappen" leeg.',
     ].join("\n");
   }
@@ -396,7 +375,6 @@
   const views = {
     spreek: document.getElementById('mode-spreek'),
     typ: document.getElementById('mode-typ'),
-    foto: document.getElementById('mode-foto'),
   };
   tabs.forEach(t=>{
     t.addEventListener('click', ()=>{
@@ -411,12 +389,11 @@
   const langSelect = document.getElementById('langSelect');
   const transcriptEl = document.getElementById('transcript');
   const typInput = document.getElementById('typInput');
-  const photoNote = document.getElementById('photoNote');
 
   function applyDirection(){
     const rtl = langSelect.value === 'ar';
     const dir = rtl ? 'rtl' : 'ltr';
-    [transcriptEl, typInput, photoNote].forEach(el=>el.setAttribute('dir', dir));
+    [transcriptEl, typInput].forEach(el=>el.setAttribute('dir', dir));
   }
   langSelect.addEventListener('change', applyDirection);
   applyDirection();
@@ -493,28 +470,6 @@
     });
   }
 
-  // ---------- Photo upload ----------
-  const photoDrop = document.getElementById('photoDrop');
-  const photoInput = document.getElementById('photoInput');
-  const photoPreview = document.getElementById('photoPreview');
-  const photoDropText = document.getElementById('photoDropText');
-  let photoBase64 = null;
-
-  photoDrop.addEventListener('click', ()=>photoInput.click());
-  photoInput.addEventListener('change', ()=>{
-    const file = photoInput.files[0];
-    if(!file) return;
-    const reader = new FileReader();
-    reader.onload = ()=>{
-      photoBase64 = reader.result; // data URL
-      photoPreview.src = photoBase64;
-      photoPreview.style.display = 'block';
-      photoDropText.style.display = 'none';
-      photoDrop.classList.add('hasimg');
-    };
-    reader.readAsDataURL(file);
-  });
-
   // ---------- Ask ----------
   const askBtn = document.getElementById('askBtn');
   const statusEl = document.getElementById('status');
@@ -529,7 +484,6 @@
     const mode = activeMode();
     if(mode === 'spreek') return transcriptEl.textContent.trim();
     if(mode === 'typ') return typInput.value.trim();
-    if(mode === 'foto') return photoNote.value.trim();
     return '';
   }
 
@@ -584,12 +538,8 @@
   askBtn.addEventListener('click', async ()=>{
     const question = currentQuestionText();
     const mode = activeMode();
-    if(mode !== 'foto' && !question){
+    if(!question){
       statusEl.textContent = 'Spreek of typ eerst een som in.';
-      return;
-    }
-    if(mode === 'foto' && !photoBase64){
-      statusEl.textContent = 'Kies eerst een foto.';
       return;
     }
     if(!WORKER_URL || WORKER_URL.indexOf('VUL') !== -1){
@@ -605,10 +555,7 @@
     const level = levelSelect.value;
 
     const userContent = [];
-    userContent.push({ type: 'text', text: question ? question : 'Bekijk de foto en leg de som stap voor stap uit.' });
-    if(mode === 'foto' && photoBase64){
-      userContent.push({ type: 'image_url', image_url: { url: photoBase64 } });
-    }
+    userContent.push({ type: 'text', text: question });
 
     const body = {
       messages: [

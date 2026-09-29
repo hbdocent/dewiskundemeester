@@ -319,7 +319,11 @@
   //  Vul hieronder het adres van je Cloudflare Worker in (zie README.md).
   //  Er staat GEEN API-sleutel in dit bestand: die staat veilig in Cloudflare.
   // ============================================================
-  const WORKER_URL = "https://dewiskundemeester.hbdocent.workers.dev";
+  const WORKER_URL = "http://dewiskundemeester.hbdocent.workers.dev";
+  // De Worker kiest zelf welk Cloudflare-model erbij hoort. Voor Arabisch,
+  // Turks en Somalisch vragen we meteen het grotere, sterkere model aan;
+  // voor Nederlands het kleinere (dat geeft meer ruimte binnen het gratis
+  // dagquotum). Bij een mislukte poging proberen we de andere variant.
   // ============================================================
 
   const LEVEL_LABELS = {
@@ -345,7 +349,7 @@
       "in taal die past bij dit niveau (basis = kort en eenvoudig, kader = iets abstracter mag).",
       languageInstruction,
       "",
-      "Antwoord UITSLUITEND met geldige JSON in dit format:",
+      "Antwoord UITSLUITEND met geldige JSON, in dit format, zonder enige tekst, uitleg of markdown ervoor of erna:",
       "{",
       '  "samenvatting": "korte herhaling van de vraag/som in eigen woorden",',
       '  "stappen": [',
@@ -561,48 +565,57 @@
       messages: [
         { role: 'system', content: systemPrompt(level, lang) },
         { role: 'user', content: userContent }
-      ],
-      response_format: { type: 'json_object' }
+      ]
     };
 
+    // Voor Arabisch/Turks/Somalisch meteen het grotere model; anders het
+    // kleinere (dat geeft meer ruimte binnen het gratis dagquotum). Lukt de
+    // eerste poging niet, dan proberen we het met de andere variant.
+    const eersteModel = (lang === 'nl') ? 'standaard' : 'groot';
+    const tweedeModel = (eersteModel === 'standaard') ? 'groot' : 'standaard';
+    const MODEL_SEQUENCE = [eersteModel, tweedeModel];
+
+    function extractJson(raw){
+      let s = String(raw || '').trim();
+      s = s.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/```\s*$/, '');
+      const first = s.indexOf('{');
+      const last = s.lastIndexOf('}');
+      if(first !== -1 && last !== -1 && last > first){
+        s = s.slice(first, last + 1);
+      }
+      try{ return JSON.parse(s); } catch(e){ return null; }
+    }
+
     try{
-      const MAX_TRIES = 3;
+      const MAX_TRIES = MODEL_SEQUENCE.length;
       let data = null;
 
-      for(let attempt = 1; attempt <= MAX_TRIES; attempt++){
+      for(let attempt = 0; attempt < MAX_TRIES; attempt++){
+        const attemptBody = Object.assign({}, body, { model: MODEL_SEQUENCE[attempt] });
         const res = await fetch(WORKER_URL, {
           method:'POST',
           headers: { 'Content-Type':'application/json' },
-          body: JSON.stringify(body)
+          body: JSON.stringify(attemptBody)
         });
         if(!res.ok){
-          if(res.status === 429){
-            throw new Error('Het gratis daglimiet is bereikt (50 vragen per dag). Probeer het morgen opnieuw.');
-          }
           const errText = await res.text();
-          throw new Error('OpenRouter gaf een fout (' + res.status + '): ' + errText.slice(0,200));
+          if(attempt < MAX_TRIES - 1){
+            continue; // probeer het andere model
+          }
+          throw new Error('De rekenhulp gaf een fout (' + res.status + '): ' + errText.slice(0,200));
         }
-        const orData = await res.json();
-        const raw = orData && orData.choices && orData.choices[0] && orData.choices[0].message
-                    ? orData.choices[0].message.content : '{}';
-        let parsed;
-        try{ parsed = JSON.parse(raw); }
-        catch(e){
-          // sommige modellen zetten er nog een ```json codeblok omheen
-          const cleaned = String(raw).trim().replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/```\s*$/, '');
-          try{ parsed = JSON.parse(cleaned); }
-          catch(e2){ parsed = null; }
-        }
+        const wData = await res.json();
+        const parsed = extractJson(wData && wData.content);
 
         // Bruikbaar = er staat een antwoord of minstens een stap in.
-        // De gratis router kiest soms een model dat alleen "User Safety: safe"
-        // teruggeeft; dat herkennen we hier en dan proberen we het opnieuw.
+        // Soms geeft een model geen geldige JSON terug; dan proberen we
+        // het hierna met het andere model.
         const usable = parsed && (
           (parsed.antwoord && String(parsed.antwoord).trim()) ||
           (Array.isArray(parsed.stappen) && parsed.stappen.length)
         );
         if(usable){ data = parsed; break; }
-        if(attempt < MAX_TRIES){
+        if(attempt < MAX_TRIES - 1){
           statusEl.textContent = 'Nog even rekenen…';
         }
       }

@@ -558,13 +558,10 @@
     const lang = langSelect.value;
     const level = levelSelect.value;
 
-    const userContent = [];
-    userContent.push({ type: 'text', text: question });
-
     const body = {
       messages: [
         { role: 'system', content: systemPrompt(level, lang) },
-        { role: 'user', content: userContent }
+        { role: 'user', content: question }
       ]
     };
 

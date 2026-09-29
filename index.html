@@ -319,7 +319,7 @@
   //  Vul hieronder het adres van je Cloudflare Worker in (zie README.md).
   //  Er staat GEEN API-sleutel in dit bestand: die staat veilig in Cloudflare.
   // ============================================================
-  const WORKER_URL = "https://wiskundemeester.hbdocent.workers.dev";
+  const WORKER_URL = "VUL-HIER-JE-WORKER-ADRES-IN";
   // De Worker kiest zelf welk Cloudflare-model erbij hoort. Voor Arabisch,
   // Turks en Somalisch vragen we meteen het grotere, sterkere model aan;
   // voor Nederlands het kleinere (dat geeft meer ruimte binnen het gratis
@@ -586,6 +586,7 @@
     try{
       const MAX_TRIES = MODEL_SEQUENCE.length;
       let data = null;
+      let lastRaw = '';
 
       for(let attempt = 0; attempt < MAX_TRIES; attempt++){
         const attemptBody = Object.assign({}, body, { model: MODEL_SEQUENCE[attempt] });
@@ -596,12 +597,14 @@
         });
         if(!res.ok){
           const errText = await res.text();
+          lastRaw = '(fout ' + res.status + ') ' + errText;
           if(attempt < MAX_TRIES - 1){
             continue; // probeer het andere model
           }
           throw new Error('De rekenhulp gaf een fout (' + res.status + '): ' + errText.slice(0,200));
         }
         const wData = await res.json();
+        lastRaw = (wData && wData.content) || '(leeg antwoord)';
         const parsed = extractJson(wData && wData.content);
 
         // Bruikbaar = er staat een antwoord of minstens een stap in.
@@ -618,7 +621,7 @@
       }
 
       if(!data){
-        throw new Error('Er kwam geen bruikbaar antwoord terug. Klik nog een keer op de knop.');
+        throw new Error('Er kwam geen bruikbaar antwoord terug. Wat het model teruggaf: "' + String(lastRaw).slice(0,300) + '"');
       }
 
       statusEl.textContent = '';

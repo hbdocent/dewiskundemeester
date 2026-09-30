@@ -333,33 +333,32 @@
     "4-kader": "klas 4 vmbo-kader",
   };
 
+  const LANGUAGE_NAMES = { nl: "Dutch", ar: "Arabic", tr: "Turkish", so: "Somali" };
+
   function systemPrompt(level, language){
     const levelLabel = LEVEL_LABELS[level] || "vmbo klas 3/4";
-    const languageInstructions = {
-      nl: "Schrijf alle tekst in het Nederlands.",
-      ar: "Schrijf ALLE tekst in het Arabisch (Modern Standaard Arabisch), inclusief de labels.",
-      tr: "Schrijf ALLE tekst in het Turks (Türkçe), in eenvoudige, duidelijke taal voor een scholier.",
-      so: "Schrijf ALLE tekst in het Somalisch (Af-Soomaali), in eenvoudige, duidelijke taal voor een scholier. Gebruik gewone Somalische woorden en houd zinnen kort.",
-    };
-    const languageInstruction = languageInstructions[language] || languageInstructions.nl;
+    const langName = LANGUAGE_NAMES[language] || "Dutch";
     return [
-      "Je bent een geduldige, vriendelijke wiskundedocent voor een leerling in " + levelLabel + ".",
-      "De leerling stuurt een wiskundevraag als tekst (getypt of ingesproken).",
-      "Geef nooit alleen het kale antwoord: leg altijd de denkstappen en de berekening uit,",
-      "in taal die past bij dit niveau (basis = kort en eenvoudig, kader = iets abstracter mag).",
-      languageInstruction,
+      "You are a patient, friendly math teacher for a " + levelLabel + " student.",
+      "CRITICAL RULE: every text value inside the JSON you return must be written entirely in " +
+        langName + ". Do not use Dutch anywhere in the values, only in the JSON key names themselves " +
+        "(which must stay exactly as shown below). Ordinary math notation (numbers, +, -, ×, ÷, =, x, y) may stay as-is.",
+      "The student sends a math question as text (typed or spoken, in " + langName + " or Dutch).",
+      "Never give only the bare answer: always explain the reasoning steps and the calculation,",
+      "in language that fits the student's level (basis = short and simple, kader = a bit more abstract is fine).",
       "",
-      "Antwoord UITSLUITEND met geldige JSON, in dit format, zonder enige tekst, uitleg of markdown ervoor of erna:",
+      "Respond ONLY with valid JSON, in exactly this structure, with no other text, explanation or markdown before or after it:",
       "{",
-      '  "samenvatting": "korte herhaling van de vraag/som in eigen woorden",',
+      '  "samenvatting": "<short restatement of the question, in ' + langName + '>",',
       '  "stappen": [',
-      '    { "stap": "korte titel van de stap", "uitleg": "wat je doet en waarom", "berekening": "de rekenregel zelf, bv. 3x + 5 = 20 -> 3x = 15" }',
+      '    { "stap": "<short step title, in ' + langName + '>", "uitleg": "<what you do and why, in ' + langName + '>", "berekening": "<the calculation itself, e.g. 3x + 5 = 20 -> 3x = 15>" }',
       "  ],",
-      '  "antwoord": "het uiteindelijke antwoord, kort en duidelijk",',
-      '  "controle": "een korte tip om te controleren of het antwoord klopt"',
+      '  "antwoord": "<the final answer, short and clear, in ' + langName + '>",',
+      '  "controle": "<a short tip to check the answer, in ' + langName + '>"',
       "}",
-      "Gebruik 2 tot 5 stappen, afhankelijk van de som. Als de tekst geen duidelijke",
-      'wiskundevraag bevat, zet dat uitgelegd in "samenvatting" en laat "stappen" leeg.',
+      "Use 2 to 5 steps depending on the problem. If the text is not a clear math question,",
+      'say so inside "samenvatting" (in ' + langName + ') and leave "stappen" empty.',
+      "REMINDER: write every value above in " + langName + ", never in Dutch (unless " + langName + " is Dutch).",
     ].join("\n");
   }
 

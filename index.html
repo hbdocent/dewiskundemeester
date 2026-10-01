@@ -282,6 +282,7 @@
         <option value="ar">🇸🇦 الشرح بالعربية (Arabisch)</option>
         <option value="tr">🇹🇷 Türkçe açıklama (Turks)</option>
         <option value="so">🇸🇴 Sharaxaad Soomaali (Somalisch)</option>
+        <option value="en">🇬🇧 Explanation in English (Engels)</option>
       </select>
     </div>
 
@@ -333,7 +334,7 @@
     "4-kader": "klas 4 vmbo-kader",
   };
 
-  const LANGUAGE_NAMES = { nl: "Dutch", ar: "Arabic", tr: "Turkish", so: "Somali" };
+  const LANGUAGE_NAMES = { nl: "Dutch", ar: "Arabic", tr: "Turkish", so: "Somali", en: "English" };
 
   function systemPrompt(level, language){
     const levelLabel = LEVEL_LABELS[level] || "vmbo klas 3/4";
@@ -430,7 +431,7 @@
       wantsListening = true;
       sessionBase = '';
       lastFinalText = '';
-      recognition.lang = ({ nl:'nl-NL', ar:'ar-SA', tr:'tr-TR', so:'so-SO' })[langSelect.value] || 'nl-NL';
+      recognition.lang = ({ nl:'nl-NL', ar:'ar-SA', tr:'tr-TR', so:'so-SO', en:'en-US' })[langSelect.value] || 'nl-NL';
       transcriptEl.textContent = '';
       try{ recognition.start(); }catch(e){ /* already started */ }
     });
@@ -500,6 +501,7 @@
     ar: { som: 'السؤال', stappen: 'خطوات الحل', antwoord: 'الإجابة' },
     tr: { som: 'Soru', stappen: 'Çözüm adımları', antwoord: 'Cevap' },
     so: { som: 'Su\'aasha', stappen: 'Tallaabooyinka xallinta', antwoord: 'Jawaabta' },
+    en: { som: 'The question', stappen: 'Steps', antwoord: 'Answer' },
   };
   function t(lang, key){
     return (LABELS[lang] || LABELS.nl)[key];
@@ -567,7 +569,7 @@
     // Voor Arabisch/Turks/Somalisch meteen het grotere model; anders het
     // kleinere (dat geeft meer ruimte binnen het gratis dagquotum). Lukt de
     // eerste poging niet, dan proberen we het met de andere variant.
-    const eersteModel = (lang === 'nl') ? 'standaard' : 'groot';
+    const eersteModel = (lang === 'nl' || lang === 'en') ? 'standaard' : 'groot';
     const tweedeModel = (eersteModel === 'standaard') ? 'groot' : 'standaard';
     const MODEL_SEQUENCE = [eersteModel, tweedeModel];
 
